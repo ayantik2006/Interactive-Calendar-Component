@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
 import CalendarGrid from "./CalendarGrid";
@@ -10,15 +10,26 @@ type ThemeMode = "light" | "dark" | "system";
 
 const THEME_KEY = "calendar_theme";
 const HOLIDAY_DATES_KEY = "holiday_dates";
+const THEME_CHANGE_EVENT = "calendar-theme-change";
 
-function getInitialThemeMode(): ThemeMode {
+function getStoredThemeMode(): ThemeMode {
   if (typeof window === "undefined") return "system";
 
   const savedTheme = localStorage.getItem(THEME_KEY);
   return savedTheme === "light" || savedTheme === "dark" || savedTheme === "system" ? savedTheme : "system";
 }
 
-function getSystemTheme() {
+function subscribeToThemeChanges(onStoreChange: () => void) {
+  window.addEventListener(THEME_CHANGE_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+
+  return () => {
+    window.removeEventListener(THEME_CHANGE_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
+function getSystemTheme(): "light" | "dark" {
   if (typeof window === "undefined") return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
@@ -27,17 +38,9 @@ export default function CalendarWidget() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [themeMode, setThemeMode] = useState<ThemeMode>(getInitialThemeMode);
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => {
-    const initialThemeMode = getInitialThemeMode();
-    return initialThemeMode === "system" ? getSystemTheme() : initialThemeMode;
-  });
-  const [holidayDates, setHolidayDates] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-
-    const savedHolidayDates = localStorage.getItem(HOLIDAY_DATES_KEY);
-    return new Set(savedHolidayDates ? JSON.parse(savedHolidayDates) as string[] : []);
-  });
+  const themeMode = useSyncExternalStore<ThemeMode>(subscribeToThemeChanges, getStoredThemeMode, () => "system");
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+  const [holidayDates, setHolidayDates] = useState<Set<string>>(new Set());
 
   const toggleHoliday = (date: Date) => {
     const dateKey = format(date, "yyyy-MM-dd");
@@ -60,10 +63,30 @@ export default function CalendarWidget() {
   const isDark = resolvedTheme === "dark";
 
   useEffect(() => {
+    const loadHolidayDates = () => {
+      const savedHolidayDates = localStorage.getItem(HOLIDAY_DATES_KEY);
+
+      if (!savedHolidayDates) return;
+
+      try {
+        const parsedHolidayDates = JSON.parse(savedHolidayDates) as unknown;
+
+        if (Array.isArray(parsedHolidayDates)) {
+          setHolidayDates(new Set(parsedHolidayDates.filter((date): date is string => typeof date === "string")));
+        }
+      } catch {
+        localStorage.removeItem(HOLIDAY_DATES_KEY);
+      }
+    };
+
+    loadHolidayDates();
+  }, []);
+
+  useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const applyTheme = () => {
-      const nextResolvedTheme = themeMode === "system" ? (mediaQuery.matches ? "dark" : "light") : themeMode;
+      const nextResolvedTheme: "light" | "dark" = themeMode === "system" ? getSystemTheme() : themeMode;
 
       setResolvedTheme(nextResolvedTheme);
       localStorage.setItem(THEME_KEY, themeMode);
@@ -88,6 +111,11 @@ export default function CalendarWidget() {
   const handleClearSelection = () => {
     setStartDate(null);
     setEndDate(null);
+  };
+
+  const handleThemeChange = (mode: ThemeMode) => {
+    localStorage.setItem(THEME_KEY, mode);
+    window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
   };
 
   return (
@@ -115,7 +143,7 @@ export default function CalendarWidget() {
                   themeMode === mode ? "bg-white text-slate-950" : "hover:bg-white/15"
                 }`}
                 key={mode}
-                onClick={() => setThemeMode(mode)}
+                onClick={() => handleThemeChange(mode)}
                 type="button"
               >
                 {mode}
