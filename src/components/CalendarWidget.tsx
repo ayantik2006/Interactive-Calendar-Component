@@ -35,6 +35,18 @@ export default function CalendarWidget() {
   };
 
   const selectedDateKey = startDate && !endDate ? format(startDate, "yyyy-MM-dd") : null;
+  const handleTodayClick = () => {
+    const today = new Date();
+
+    setCurrentMonth(today);
+    setStartDate(today);
+    setEndDate(null);
+  };
+
+  const handleClearSelection = () => {
+    setStartDate(null);
+    setEndDate(null);
+  };
 
   return (
     <div className="flex max-h-[calc(100vh-1.5rem)] w-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5 sm:max-h-[calc(100vh-2rem)]">
@@ -80,6 +92,8 @@ export default function CalendarWidget() {
           endDate={endDate}
           setEndDate={setEndDate}
           holidayDates={holidayDates}
+          onTodayClick={handleTodayClick}
+          onClearSelection={handleClearSelection}
         />
       </div>
 

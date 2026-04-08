@@ -17,10 +17,12 @@ interface CalendarGridProps {
   endDate: Date | null;
   setEndDate: (date: Date | null) => void;
   holidayDates: Set<string>;
+  onTodayClick: () => void;
+  onClearSelection: () => void;
 }
 
 export default function CalendarGrid({
-  currentMonth, setCurrentMonth, startDate, setStartDate, endDate, setEndDate, holidayDates
+  currentMonth, setCurrentMonth, startDate, setStartDate, endDate, setEndDate, holidayDates, onTodayClick, onClearSelection
 }: CalendarGridProps) {
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const [direction, setDirection] = useState(0); 
@@ -105,6 +107,25 @@ export default function CalendarGrid({
             <ChevronRight size={18} />
           </button>
         </div>
+      </div>
+
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <button
+          className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+          onClick={onTodayClick}
+          type="button"
+        >
+          Today
+        </button>
+        {(startDate || endDate) && (
+          <button
+            className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900"
+            onClick={onClearSelection}
+            type="button"
+          >
+            Clear selection
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-7 gap-1">
