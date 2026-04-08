@@ -16,10 +16,11 @@ interface CalendarGridProps {
   setStartDate: (date: Date | null) => void;
   endDate: Date | null;
   setEndDate: (date: Date | null) => void;
+  holidayDates: Set<string>;
 }
 
 export default function CalendarGrid({
-  currentMonth, setCurrentMonth, startDate, setStartDate, endDate, setEndDate
+  currentMonth, setCurrentMonth, startDate, setStartDate, endDate, setEndDate, holidayDates
 }: CalendarGridProps) {
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const [direction, setDirection] = useState(0); 
@@ -130,18 +131,22 @@ export default function CalendarGrid({
               const isToday = isSameDay(day, new Date());
               const isStart = startDate && isSameDay(day, startDate);
               const isEnd = endDate && isSameDay(day, endDate);
+              const isHoliday = holidayDates.has(format(day, "yyyy-MM-dd"));
               
               const isBetween = startDate && endDate 
                 ? isWithinInterval(day, { start: startDate, end: endDate }) && !isStart && !isEnd
                 : startDate && hoverDate && isAfter(hoverDate, startDate)
                   ? isWithinInterval(day, { start: startDate, end: hoverDate }) && !isStart && !isSameDay(day, hoverDate)
                   : false;
+              const isHoverEnd = startDate && hoverDate && isSameDay(day, hoverDate) && isAfter(hoverDate, startDate);
+              const isSelected = isStart || isEnd || isHoverEnd;
 
               let className = "relative flex aspect-square cursor-pointer items-center justify-center rounded-lg bg-transparent text-sm font-medium text-slate-800 transition-colors duration-200 hover:bg-slate-100";
               if (!isCurrentMonth) className += " !text-slate-300 font-normal hover:bg-transparent";
+              if (isHoliday) className += " bg-rose-50 text-rose-700 ring-1 ring-rose-100 hover:bg-rose-100";
               if (isToday) className += " border border-blue-400 text-blue-600";
               if (isBetween) className += " rounded-none !bg-blue-50 text-blue-700 ring-1 ring-blue-100 hover:!bg-blue-100";
-              if (isStart || isEnd || (startDate && hoverDate && isSameDay(day, hoverDate) && isAfter(hoverDate, startDate))) {
+              if (isSelected) {
                  className += " !bg-slate-950 text-white shadow-sm hover:!bg-slate-800";
               }
               if (isStart && (endDate || hoverDate)) className += " rounded-r-none";
@@ -154,7 +159,10 @@ export default function CalendarGrid({
                   onClick={() => handleDayClick(day)}
                   onMouseEnter={() => handleMouseEnter(day)}
                 >
-                  {format(day, "d")}
+                  <span>{format(day, "d")}</span>
+                  {isHoliday && (
+                    <span className={`absolute bottom-1 h-1 w-1 rounded-full ${isSelected ? "bg-white" : "bg-rose-500"}`} />
+                  )}
                 </div>
               );
             })}

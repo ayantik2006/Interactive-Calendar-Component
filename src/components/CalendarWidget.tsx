@@ -10,6 +10,31 @@ export default function CalendarWidget() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [holidayDates, setHolidayDates] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+
+    const savedHolidayDates = localStorage.getItem("holiday_dates");
+    return new Set(savedHolidayDates ? JSON.parse(savedHolidayDates) as string[] : []);
+  });
+
+  const toggleHoliday = (date: Date) => {
+    const dateKey = format(date, "yyyy-MM-dd");
+
+    setHolidayDates((previousHolidayDates) => {
+      const nextHolidayDates = new Set(previousHolidayDates);
+
+      if (nextHolidayDates.has(dateKey)) {
+        nextHolidayDates.delete(dateKey);
+      } else {
+        nextHolidayDates.add(dateKey);
+      }
+
+      localStorage.setItem("holiday_dates", JSON.stringify([...nextHolidayDates]));
+      return nextHolidayDates;
+    });
+  };
+
+  const selectedDateKey = startDate && !endDate ? format(startDate, "yyyy-MM-dd") : null;
 
   return (
     <div className="flex max-h-[calc(100vh-1.5rem)] w-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5 sm:max-h-[calc(100vh-2rem)]">
@@ -40,6 +65,8 @@ export default function CalendarWidget() {
             currentMonth={currentMonth} 
             startDate={startDate} 
             endDate={endDate} 
+            isSelectedDateHoliday={selectedDateKey ? holidayDates.has(selectedDateKey) : false}
+            toggleHoliday={toggleHoliday}
           />
         </div>
       </div>
@@ -52,6 +79,7 @@ export default function CalendarWidget() {
           setStartDate={setStartDate}
           endDate={endDate}
           setEndDate={setEndDate}
+          holidayDates={holidayDates}
         />
       </div>
 
