@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+:root {
+  --body-bg: #f8fafc;
+  --body-text: #020617;
+  --page-bg: linear-gradient(180deg, #ffffff 0%, #f8fafc 45%, #eef2ff 100%);
+  --page-orb: rgb(219 234 254 / 0.5);
+}
+
+:root[data-theme="dark"] {
+  --body-bg: #020617;
+  --body-text: #f8fafc;
+  --page-bg: radial-gradient(circle at top, #1e293b 0%, #020617 52%, #000000 100%);
+  --page-orb: rgb(30 58 138 / 0.4);
+}

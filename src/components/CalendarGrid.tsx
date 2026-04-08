@@ -19,10 +19,11 @@ interface CalendarGridProps {
   holidayDates: Set<string>;
   onTodayClick: () => void;
   onClearSelection: () => void;
+  isDark: boolean;
 }
 
 export default function CalendarGrid({
-  currentMonth, setCurrentMonth, startDate, setStartDate, endDate, setEndDate, holidayDates, onTodayClick, onClearSelection
+  currentMonth, setCurrentMonth, startDate, setStartDate, endDate, setEndDate, holidayDates, onTodayClick, onClearSelection, isDark
 }: CalendarGridProps) {
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const [direction, setDirection] = useState(0); 
@@ -94,24 +95,30 @@ export default function CalendarGrid({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex gap-2 text-lg font-semibold tracking-tight text-slate-950">
+      <div className="mb-2 flex items-center justify-between">
+        <div className={`flex gap-2 text-base font-semibold tracking-tight ${isDark ? "text-slate-50" : "text-slate-950"}`}>
           <span>{format(currentMonth, "MMMM")}</span>
-          <span className="text-slate-500">{format(currentMonth, "yyyy")}</span>
+          <span className={isDark ? "text-slate-400" : "text-slate-500"}>{format(currentMonth, "yyyy")}</span>
         </div>
         <div className="flex gap-2">
-          <button className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors hover:bg-slate-50" onClick={handlePrevMonth}>
+          <button className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border shadow-sm transition-colors ${
+            isDark ? "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          }`} onClick={handlePrevMonth}>
             <ChevronLeft size={18} />
           </button>
-          <button className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors hover:bg-slate-50" onClick={handleNextMonth}>
+          <button className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border shadow-sm transition-colors ${
+            isDark ? "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          }`} onClick={handleNextMonth}>
             <ChevronRight size={18} />
           </button>
         </div>
       </div>
 
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <button
-          className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+          className={`cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium shadow-sm transition-colors ${
+            isDark ? "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          }`}
           onClick={onTodayClick}
           type="button"
         >
@@ -119,7 +126,9 @@ export default function CalendarGrid({
         </button>
         {(startDate || endDate) && (
           <button
-            className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900"
+            className={`cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium shadow-sm transition-colors ${
+              isDark ? "border-slate-700 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-100" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            }`}
             onClick={onClearSelection}
             type="button"
           >
@@ -128,9 +137,9 @@ export default function CalendarGrid({
         )}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5">
         {weekDays.map(day => (
-          <div key={day} className="pb-2 text-center text-xs font-medium text-slate-500">{day}</div>
+          <div key={day} className={`pb-1 text-center text-xs font-medium ${isDark ? "text-slate-500" : "text-slate-500"}`}>{day}</div>
         ))}
       </div>
 
@@ -144,7 +153,7 @@ export default function CalendarGrid({
             animate="center"
             exit="exit"
             transition={{ duration: 0.3, type: "tween", ease: "easeInOut" }}
-            className="grid grid-cols-7 gap-1"
+            className="grid grid-cols-7 gap-0.5"
             onMouseLeave={handleMouseLeave}
           >
             {daysInGrid.map(day => {
@@ -162,13 +171,19 @@ export default function CalendarGrid({
               const isHoverEnd = startDate && hoverDate && isSameDay(day, hoverDate) && isAfter(hoverDate, startDate);
               const isSelected = isStart || isEnd || isHoverEnd;
 
-              let className = "relative flex aspect-square cursor-pointer items-center justify-center rounded-lg bg-transparent text-sm font-medium text-slate-800 transition-colors duration-200 hover:bg-slate-100";
-              if (!isCurrentMonth) className += " !text-slate-300 font-normal hover:bg-transparent";
-              if (isHoliday) className += " bg-rose-50 text-rose-700 ring-1 ring-rose-100 hover:bg-rose-100";
-              if (isToday) className += " border border-blue-400 text-blue-600";
-              if (isBetween) className += " rounded-none !bg-blue-50 text-blue-700 ring-1 ring-blue-100 hover:!bg-blue-100";
+              let className = `relative flex aspect-square cursor-pointer items-center justify-center rounded-md bg-transparent text-xs font-medium transition-colors duration-200 ${
+                isDark ? "text-slate-200 hover:bg-slate-800" : "text-slate-800 hover:bg-slate-100"
+              }`;
+              if (!isCurrentMonth) className += isDark ? " !text-slate-700 font-normal hover:bg-transparent" : " !text-slate-300 font-normal hover:bg-transparent";
+              if (isHoliday) className += isDark ? " bg-rose-500/15 text-rose-200 ring-1 ring-rose-400/20 hover:bg-rose-500/25" : " bg-rose-50 text-rose-700 ring-1 ring-rose-100 hover:bg-rose-100";
+              if (isToday) className += isDark ? " border border-blue-400 text-blue-300" : " border border-blue-400 text-blue-600";
+              if (isBetween) className += isDark
+                ? " rounded-none !bg-blue-500/15 text-blue-200 ring-1 ring-blue-400/20 hover:!bg-blue-500/20"
+                : " rounded-none !bg-blue-50 text-blue-700 ring-1 ring-blue-100 hover:!bg-blue-100";
               if (isSelected) {
-                 className += " !bg-slate-950 text-white shadow-sm hover:!bg-slate-800";
+                 className += isDark
+                  ? " !bg-blue-600 text-white shadow-sm hover:!bg-blue-500"
+                  : " !bg-slate-950 text-white shadow-sm hover:!bg-slate-800";
               }
               if (isStart && (endDate || hoverDate)) className += " rounded-r-none";
               if (isEnd || (startDate && hoverDate && isSameDay(day, hoverDate) && isAfter(hoverDate, startDate))) className += " rounded-l-none";

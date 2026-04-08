@@ -10,9 +10,10 @@ interface NotesProps {
   endDate: Date | null;
   isSelectedDateHoliday: boolean;
   toggleHoliday: (date: Date) => void;
+  isDark: boolean;
 }
 
-export default function Notes({ currentMonth, startDate, endDate, isSelectedDateHoliday, toggleHoliday }: NotesProps) {
+export default function Notes({ currentMonth, startDate, endDate, isSelectedDateHoliday, toggleHoliday, isDark }: NotesProps) {
   let storageKey = `notes_month_${format(currentMonth, "yyyy-MM")}`;
   let title = "Monthly Memos";
   let subtitle = format(currentMonth, "MMMM yyyy");
@@ -37,6 +38,7 @@ export default function Notes({ currentMonth, startDate, endDate, isSelectedDate
       endDate={endDate}
       isSelectedDateHoliday={isSelectedDateHoliday}
       toggleHoliday={toggleHoliday}
+      isDark={isDark}
     />
   );
 }
@@ -49,6 +51,7 @@ interface NotesEditorProps {
   endDate: Date | null;
   isSelectedDateHoliday: boolean;
   toggleHoliday: (date: Date) => void;
+  isDark: boolean;
 }
 
 function NotesEditor({
@@ -58,7 +61,8 @@ function NotesEditor({
   startDate,
   endDate,
   isSelectedDateHoliday,
-  toggleHoliday
+  toggleHoliday,
+  isDark
 }: NotesEditorProps) {
   const [noteContent, setNoteContent] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -84,18 +88,22 @@ function NotesEditor({
     <div className="flex h-full flex-col">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
-          <h3 className="flex items-center gap-2 text-sm font-medium text-slate-950">
+          <h3 className={`flex items-center gap-2 text-sm font-medium ${isDark ? "text-slate-50" : "text-slate-950"}`}>
             {startDate ? <StickyNote size={18} /> : <CalendarIcon size={18} />}
             {title}
           </h3>
-          <p className="text-xs leading-relaxed text-slate-500">{subtitle}</p>
+          <p className={`text-xs leading-relaxed ${isDark ? "text-slate-400" : "text-slate-500"}`}>{subtitle}</p>
         </div>
         {startDate && !endDate && (
           <button
             className={`shrink-0 cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
               isSelectedDateHoliday
-                ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                ? isDark
+                  ? "border-rose-400/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25"
+                  : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                : isDark
+                  ? "border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
             }`}
             type="button"
             onClick={() => toggleHoliday(startDate)}
@@ -106,13 +114,17 @@ function NotesEditor({
       </div>
       
       <textarea
-        className="h-16 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-normal text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/15 sm:h-20"
+        className={`h-12 resize-none rounded-lg border p-2.5 text-sm leading-normal shadow-sm transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/15 sm:h-14 ${
+          isDark
+            ? "border-slate-700 bg-slate-900 text-slate-50"
+            : "border-slate-200 bg-white text-slate-900"
+        }`}
         placeholder="Jot down a memo, reminder, or plan..."
         value={noteContent}
         onChange={handleChange}
       />
       
-      <div className="mt-1 min-h-4 text-right text-xs text-slate-500">
+      <div className={`mt-1 min-h-4 text-right text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
         {isSaving ? "Saving..." : noteContent ? <span className="text-emerald-600">Saved</span> : ""}
       </div>
     </div>

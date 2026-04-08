@@ -1,19 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
 import CalendarGrid from "./CalendarGrid";
 import Notes from "./Notes";
 
+type ThemeMode = "light" | "dark" | "system";
+
+const THEME_KEY = "calendar_theme";
+const HOLIDAY_DATES_KEY = "holiday_dates";
+
+function getInitialThemeMode(): ThemeMode {
+  if (typeof window === "undefined") return "system";
+
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  return savedTheme === "light" || savedTheme === "dark" || savedTheme === "system" ? savedTheme : "system";
+}
+
+function getSystemTheme() {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export default function CalendarWidget() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(getInitialThemeMode);
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => {
+    const initialThemeMode = getInitialThemeMode();
+    return initialThemeMode === "system" ? getSystemTheme() : initialThemeMode;
+  });
   const [holidayDates, setHolidayDates] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
 
-    const savedHolidayDates = localStorage.getItem("holiday_dates");
+    const savedHolidayDates = localStorage.getItem(HOLIDAY_DATES_KEY);
     return new Set(savedHolidayDates ? JSON.parse(savedHolidayDates) as string[] : []);
   });
 
@@ -29,12 +51,32 @@ export default function CalendarWidget() {
         nextHolidayDates.add(dateKey);
       }
 
-      localStorage.setItem("holiday_dates", JSON.stringify([...nextHolidayDates]));
+      localStorage.setItem(HOLIDAY_DATES_KEY, JSON.stringify([...nextHolidayDates]));
       return nextHolidayDates;
     });
   };
 
   const selectedDateKey = startDate && !endDate ? format(startDate, "yyyy-MM-dd") : null;
+  const isDark = resolvedTheme === "dark";
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const applyTheme = () => {
+      const nextResolvedTheme = themeMode === "system" ? (mediaQuery.matches ? "dark" : "light") : themeMode;
+
+      setResolvedTheme(nextResolvedTheme);
+      localStorage.setItem(THEME_KEY, themeMode);
+      document.documentElement.dataset.theme = nextResolvedTheme;
+      document.documentElement.style.colorScheme = nextResolvedTheme;
+    };
+
+    applyTheme();
+    mediaQuery.addEventListener("change", applyTheme);
+
+    return () => mediaQuery.removeEventListener("change", applyTheme);
+  }, [themeMode]);
+
   const handleTodayClick = () => {
     const today = new Date();
 
@@ -49,10 +91,14 @@ export default function CalendarWidget() {
   };
 
   return (
-    <div className="flex max-h-[calc(100vh-1.5rem)] w-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5 sm:max-h-[calc(100vh-2rem)]">
+    <div className={`flex max-h-[calc(100vh-1rem)] w-full flex-col overflow-x-hidden overflow-y-auto rounded-2xl shadow-[0_24px_80px_rgba(15,23,42,0.12)] ring-1 sm:max-h-[calc(100vh-1.5rem)] ${
+      isDark
+        ? "border-slate-800/80 bg-slate-950 text-slate-50 ring-white/10"
+        : "border-slate-200/80 bg-white text-slate-950 ring-slate-950/5"
+    }`}>
       
-      <div className="flex flex-col border-b border-slate-200 bg-slate-50">
-        <div className="relative h-28 shrink-0 overflow-hidden sm:h-32">
+      <div className={`flex flex-col border-b ${isDark ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-slate-50"}`}>
+        <div className="relative h-20 shrink-0 overflow-hidden sm:h-24">
           <Image
             src="/calendar_hero.jpg" 
             alt="Calendar Hero" 
@@ -62,8 +108,23 @@ export default function CalendarWidget() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-slate-950/10 to-white/5" />
           
-          <div className="absolute bottom-4 left-5 z-[1] text-white">
-            <div className="text-2xl leading-none font-semibold tracking-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.35)]">
+          <div className="absolute top-3 right-3 z-[2] flex rounded-full border border-white/25 bg-white/15 p-0.5 text-[0.65rem] font-medium text-white/90 shadow-sm backdrop-blur-md">
+            {(["light", "dark", "system"] as ThemeMode[]).map((mode) => (
+              <button
+                className={`cursor-pointer rounded-full px-1.5 py-0.5 capitalize transition-colors ${
+                  themeMode === mode ? "bg-white text-slate-950" : "hover:bg-white/15"
+                }`}
+                key={mode}
+                onClick={() => setThemeMode(mode)}
+                type="button"
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          <div className="absolute bottom-3 left-4 z-[1] text-white">
+            <div className="text-xl leading-none font-semibold tracking-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.35)]">
               {format(currentMonth, "MMMM")}
             </div>
             <div className="text-sm text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.35)]">
@@ -72,18 +133,19 @@ export default function CalendarWidget() {
           </div>
         </div>
 
-        <div className="flex flex-col p-4">
+        <div className="flex flex-col p-3">
           <Notes 
             currentMonth={currentMonth} 
             startDate={startDate} 
             endDate={endDate} 
             isSelectedDateHoliday={selectedDateKey ? holidayDates.has(selectedDateKey) : false}
             toggleHoliday={toggleHoliday}
+            isDark={isDark}
           />
         </div>
       </div>
 
-      <div className="flex flex-col bg-white p-4">
+      <div className={`flex flex-col p-3 ${isDark ? "bg-slate-950" : "bg-white"}`}>
         <CalendarGrid 
           currentMonth={currentMonth}
           setCurrentMonth={setCurrentMonth}
@@ -94,6 +156,7 @@ export default function CalendarWidget() {
           holidayDates={holidayDates}
           onTodayClick={handleTodayClick}
           onClearSelection={handleClearSelection}
+          isDark={isDark}
         />
       </div>
 
